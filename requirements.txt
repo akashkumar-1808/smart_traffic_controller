@@ -1,0 +1,11 @@
+torch>=2.0.0
+opencv-python
+ultralytics
+gymnasium
+stable-baselines3
+numpy
+pandas
+sumolib
+traci
+pyyaml
+flask
