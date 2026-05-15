@@ -2,6 +2,7 @@
 
 import os
 import subprocess
+import traci
 from src.utils.config import SIMULATION_CONFIG
 
 
@@ -22,3 +23,14 @@ class SUMOInterface:
     def get_state(self):
         # Placeholder for interaction via TraCI or SUMO network files.
         return {}
+
+    def sync_simulation(self, lane_counts):
+        """
+        Injects vehicles into SUMO based on YOLO detections
+        to keep the 'Digital Twin' accurate.
+        """
+        for lane_id, count in enumerate(lane_counts):
+            for _ in range(count):
+                # Add a vehicle to the simulation at the specific lane
+                veh_id = f"veh_{lane_id}_{traci.simulation.getTime()}"
+                traci.vehicle.add(veh_id, routeID=f"route_{lane_id}")

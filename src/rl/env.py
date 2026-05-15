@@ -1,35 +1,48 @@
-"""Traffic control environment for reinforcement learning."""
-
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 
 
-class TrafficEnv:
-    def __init__(self, intersection_ids=None):
-        self.intersection_ids = intersection_ids or ['intersection_1']
-        self.action_space = self._build_action_space()
-        self.observation_space = self._build_observation_space()
+class TrafficEnv(gym.Env):
+    def __init__(self):
+        super(TrafficEnv, self).__init__()
 
-    def _build_action_space(self):
-        # Placeholder: replace with gym spaces when integrating with stable-baselines3
-        return {'type': 'discrete', 'n': len(self.intersection_ids) * 2}
+        # Action Space: 0 = Lane 1 Green, 1 = Lane 2 Green
+        self.action_space = spaces.Discrete(2)
 
-    def _build_observation_space(self):
-        return {'type': 'box', 'shape': (len(self.intersection_ids), 8)}
+        # Observation Space: [lane_1_count, lane_2_count]
+        # We assume max 100 cars per lane for training purposes
+        self.observation_space = spaces.Box(low=0, high=100, shape=(2,), dtype=np.float32)
 
-    def reset(self):
-        self.state = np.zeros((len(self.intersection_ids), 8), dtype=np.float32)
-        return self.state
+        self.state = np.zeros(2, dtype=np.float32)
+        self.step_count = 0
+
+    def reset(self, seed=None, options=None):
+        # Gymnasium reset now requires seed handling
+        super().reset(seed=seed)
+
+        # Start with some random traffic
+        self.state = np.random.uniform(5, 20, size=(2,)).astype(np.float32)
+        self.step_count = 0
+
+        # Return observation and an empty info dictionary
+        return self.state, {}
 
     def step(self, action):
-        reward = self._compute_reward(action)
-        next_state = self._build_observation()
-        done = False
-        info = {}
-        return next_state, reward, done, info
+        # 1. Simulate the traffic flow
+        if action == 0:  # Lane 1 is Green
+            self.state[0] = max(0, self.state[0] - 3)  # Cars leave Lane 1
+            self.state[1] += np.random.randint(0, 2)  # Cars arrive in Lane 2
+        else:  # Lane 2 is Green
+            self.state[1] = max(0, self.state[1] - 3)  # Cars leave Lane 2
+            self.state[0] += np.random.randint(0, 2)  # Cars arrive in Lane 1
 
-    def _compute_reward(self, action):
-        # Reward may combine wait time reduction, emergency clearance, and compliance.
-        return -np.random.random()
+        # 2. Calculate Reward (Negative of total cars = minimize congestion)
+        reward = -float(np.sum(self.state))
 
-    def _build_observation(self):
-        return np.random.random((len(self.intersection_ids), 8)).astype(np.float32)
+        # 3. Check if done (For simple traffic, we just run for 100 steps)
+        self.step_count += 1
+        terminated = False
+        truncated = self.step_count >= 100
+
+        return self.state, reward, terminated, truncated, {}
