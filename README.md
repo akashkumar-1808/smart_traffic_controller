@@ -1,4 +1,4 @@
-# Smart Urban Traffic Control (SUTC)
+# AI Powered Smart Urban Traffic Control System
 
 AI-driven adaptive traffic signal control system using computer vision and reinforcement learning.
 
